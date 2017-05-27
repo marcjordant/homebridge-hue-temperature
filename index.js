@@ -43,14 +43,12 @@ TemperatureAccessory.prototype =
                     }
                 }.bind(this));
             } else {
-                this.log("Returning cached data", this.temperature);
                 temperatureService.setCharacteristic(Characteristic.CurrentTemperature, this.temperature);
                 callback(null, this.temperature);
             }
         },
 
         getActive: function (callback) {
-          this.log("getActive requested")
                 var url = "http://" + this.hueBridgeIPAddress + "/api/" + this.hueBridgeUsername + "/sensors/" + this.hueSensorId;
                 
                 this.httpRequest(url, function (error, response, responseBody) {
@@ -64,7 +62,6 @@ TemperatureAccessory.prototype =
         },
 
         getBatteryLevel: function (callback) {
-          this.log("getBatteryLevel requested")
             // Only fetch new data every 1 minute
             if (this.lastupdateBattery + (60 * 1) < (Date.now() / 1000 | 0)) {
                 var url = "http://" + this.hueBridgeIPAddress + "/api/" + this.hueBridgeUsername + "/sensors/" + this.hueSensorId;
@@ -78,12 +75,10 @@ TemperatureAccessory.prototype =
                         var battery = parseInt(statusObj["config"]["battery"]);
                         this.battery = battery <= 20 ? true : false;
                         this.lastupdateBattery = (Date.now() / 1000);
-          this.log("BatteryLevel : "  + this.battery)
                         callback(null, battery);
                     }
                 }.bind(this));
             } else {
-                this.log("Returning cached data", this.temperature);
                 temperatureService.setCharacteristic(Characteristic.StatusLowBattery, this.battery);
                 callback(null, this.battery);
             }
