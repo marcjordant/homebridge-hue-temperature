@@ -3,10 +3,27 @@
 var Service, Characteristic;
 var temperatureService;
 var request = require("request");
+var inherits = require('util').inherits;
+
+var HueMotionSensorBatteryLevel = function () {
+    Characteristic.call(this, 'Battery Level', 'AB63F11B-079E-48FF-8F27-9C2605A29F53');
+    this.setProps({
+        format: Characteristic.Formats.UINT8,
+        unit: Characteristic.Units.PERCENTAGE,
+        maxValue: 100,
+        minValue: 0,
+        minStep: 1,
+        perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+    });
+    this.value = this.getDefaultValue();
+};
 
 module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
+
+    inherits(HueMotionSensorBatteryLevel, Characteristic);
+
     homebridge.registerAccessory("homebridge-hue-temperature", "HueTemperature", TemperatureAccessory);
 }
 
@@ -37,7 +54,7 @@ TemperatureAccessory.prototype =
       });
     },
 
-    getBatteryLevel: function (callback)
+    getBatteryLevelLow: function (callback)
     {
       var url = "http://" + this.hueBridgeIPAddress + "/api/" + this.hueBridgeUsername + "/sensors/" + this.hueSensorId;
       
@@ -49,6 +66,21 @@ TemperatureAccessory.prototype =
               var batteryLevel = parseInt(statusObj["config"]["battery"]);
               var battery = batteryLevel <= 20 ? true : false;
               callback(null, battery);
+          }
+      });
+    },
+
+
+    getBatteryLevel: function (callback)
+    {
+      var url = "http://" + this.hueBridgeIPAddress + "/api/" + this.hueBridgeUsername + "/sensors/" + this.hueSensorId;
+      this.httpRequest(url, function (error, response, responseBody) {
+          if (error) {
+              callback(error);
+          } else {
+              var statusObj = JSON.parse(responseBody);
+              var batteryLevel = parseInt(statusObj["config"]["battery"]);
+              callback(null, batteryLevel);
           }
       });
     },
@@ -70,6 +102,11 @@ TemperatureAccessory.prototype =
 
         temperatureService
             .getCharacteristic(Characteristic.StatusLowBattery)
+            .on('get', this.getBatteryLevelLow.bind(this));
+
+        temperatureService.addOptionalCharacteristic(HueMotionSensorBatteryLevel);
+        temperatureService
+            .getCharacteristic(HueMotionSensorBatteryLevel)
             .on('get', this.getBatteryLevel.bind(this));
 
         return [informationService, temperatureService];
