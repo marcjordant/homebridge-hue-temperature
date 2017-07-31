@@ -47,8 +47,29 @@ TemperatureAccessory.prototype =
           }
           else {
               var statusObj = JSON.parse(responseBody);
-              var temperatureObj = statusObj["state"]["temperature"];
-              var temperature = parseFloat(temperatureObj.toString().substring(0, 2) + "." + temperatureObj.toString().substring(2, 4));
+              var temperatureObj = statusObj["state"]["temperature"].toString();
+              var isNegative = false;
+
+              if (temperatureObj.startsWith("-")) {
+                temperatureObj = temperatureObj.substring(1);
+                isNegative = true;
+              }
+
+              var temperature = 0
+              if (temperatureObj.length == 4) {
+                temperature = parseFloat(temperatureObj.substring(0, 2) + "." + temperatureObj.substring(2, 4));
+              }
+              else  if (temperatureObj.length == 3) {
+                temperature = parseFloat(temperatureObj.substring(0, 1) + "." + temperatureObj.substring(1, 3));
+              }
+              else  if (temperatureObj.length < 3) {
+                temperature = parseFloat("0." + temperatureObj);
+              }
+
+              if (isNegative) {
+                temperature = -temperature;
+              }
+
               callback(null, temperature);
           }
       });
@@ -108,6 +129,16 @@ TemperatureAccessory.prototype =
         temperatureService
             .getCharacteristic(HueMotionSensorBatteryLevel)
             .on('get', this.getBatteryLevel.bind(this));
+
+
+        temperatureService
+            .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({minValue: -30});
+
+        temperatureService
+            .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({maxValue: 120});
+
 
         return [informationService, temperatureService];
     },
